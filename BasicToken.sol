@@ -1,3 +1,5 @@
+pragma solidity ^0.4.11;
+
 library SafeMath {
     function mul(uint256 a, uint256 b) internal constant returns (uint256) {
       uint256 c = a * b;
@@ -18,10 +20,6 @@ library SafeMath {
       return c;
     }
 }
-
-pragma solidity ^0.4.11;
-
-
 
 contract BasicToken {
 
