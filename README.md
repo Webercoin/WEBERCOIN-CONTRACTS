@@ -1,1 +1,1 @@
-# WeberCONTRACTS
+# WebercoinCONTRACTS
