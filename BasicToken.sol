@@ -1,85 +1,89 @@
-pragma solidity ^0.4.11;
 
-library SafeMath {
-    function mul(uint256 a, uint256 b) internal constant returns (uint256) {
-      uint256 c = a * b;
-      assert(a == 0 || c / a == b);
-      return c;
-    }
-    function div(uint256 a, uint256 b) internal constant returns (uint256) {
-      uint256 c = a / b;
-      return c;
-    }
-    function sub(uint256 a, uint256 b) internal constant returns (uint256) {
-      assert(b <= a);
-      return a - b;
-    }
-    function add(uint256 a, uint256 b) internal constant returns (uint256) {
-      uint256 c = a + b;
-      assert(c >= a);
-      return c;
-    }
+pragma solidity ^0.4.8;
+
+contract Token {
+    uint256 public totalSupply;
+
+    function balanceOf(address _owner) constant returns (uint256 balance);
+    function transfer(address _to, uint256 _value) returns (bool success);
+    function transferFrom(address _from, address _to, uint256 _value) returns (bool success);
+    function approve(address _spender, uint256 _value) returns (bool success);
+
+    function allowance(address _owner, address _spender) constant returns (uint256 remaining);
+
+    event Transfer(address indexed _from, address indexed _to, uint256 _value);
+    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
 }
 
-contract BasicToken {
+contract StandardToken is Token {
 
-  using SafeMath for uint256;
+    function transfer(address _to, uint256 _value) returns (bool success) {
+        if (balances[msg.sender] >= _value && _value > 0) {
+            balances[msg.sender] -= _value;
+            balances[_to] += _value;
+            Transfer(msg.sender, _to, _value);
+            return true;
+        } else { return false; }
+    }
 
-  mapping (address => mapping (address => uint256)) allowed;
-  mapping(address => uint256) balances;
+    function transferFrom(address _from, address _to, uint256 _value) returns (bool success) {
+        if (balances[_from] >= _value && allowed[_from][msg.sender] >= _value && _value > 0) {
+            balances[_to] += _value;
+            balances[_from] -= _value;
+            allowed[_from][msg.sender] -= _value;
+            Transfer(_from, _to, _value);
+            return true;
+        } else { return false; }
+    }
 
-  uint256 public totalSupply;
-  uint256 public decimals;
-  address public owner;
-  bytes32 public symbol;
+    function balanceOf(address _owner) constant returns (uint256 balance) {
+        return balances[_owner];
+    }
 
-  event Transfer(address indexed from, address indexed to, uint256 value);
-  event Approval(address indexed _owner, address indexed spender, uint256 value);
+    function approve(address _spender, uint256 _value) returns (bool success) {
+        allowed[msg.sender][_spender] = _value;
+        Approval(msg.sender, _spender, _value);
+        return true;
+    }
 
-  /* Edit these variables to set token initial issue */
-  /* Change the function BasicToken() name to <Your Preferred Name> to change name*/
-  function BasicToken(){
-    totalSupply = 1000;
-    symbol = "^";
-    owner = msg.sender; /* For Platform: Add hardcoded address so we can pay for creation */
-    balances[msg.sender] = totalSupply;
-    decimals = 0; 
-  }
+    function allowance(address _owner, address _spender) constant returns (uint256 remaining) {
+      return allowed[_owner][_spender];
+    }
 
-  function balanceOf(address _owner) constant returns (uint256 balance) {
-    return balances[_owner];
-  }
+    mapping (address => uint256) balances;
+    mapping (address => mapping (address => uint256)) allowed;
+}
 
-  function allowance(address _owner, address _spender) constant returns (uint256 remaining) {
-    return allowed[_owner][_spender];
-  }
+contract WeberCoin is StandardToken {
 
-  function transfer(address _to, uint256 _value) returns (bool) {
-    balances[msg.sender] = balances[msg.sender].sub(_value);
-    balances[_to] = balances[_to].add(_value);
-    Transfer(msg.sender, _to, _value);
-    return true;
-  }
+    function () {
+        throw;
+    }
 
-  function transferFrom(address _from, address _to, uint256 _value) returns (bool) {
-    var _allowance = allowed[_from][msg.sender];
-    balances[_to] = balances[_to].add(_value);
-    balances[_from] = balances[_from].sub(_value);
-    allowed[_from][msg.sender] = _allowance.sub(_value);
-    Transfer(_from, _to, _value);
-    return true;
-  }
+    string public name;                   
+    uint8 public decimals;                
+    string public symbol;                
+    string public version = 'H0.1';       
 
-  function approve(address _spender, uint256 _value) returns (bool) {
-    require((_value == 0) || (allowed[msg.sender][_spender] == 0));
-    allowed[msg.sender][_spender] = _value;
-    Approval(msg.sender, _spender, _value);
-    return true;
-  }
+    function WeberCoin(
+        uint256 _initialAmount,
+        string webercoin,
+        uint8 _decimalUnits,
+        string WBC
+        ) {
+        balances[msg.sender] = 100000000;               
+        totalSupply = 100000000;                        
+        name = webercoin;                               
+        decimals = 18;                            
+        symbol = WBC;                             
+    }
 
-  function (){
-    revert();
-  }
-    
-    
+    /* Approves and then calls the receiving contract */
+    function approveAndCall(address _spender, uint256 _value, bytes _extraData) returns (bool success) {
+        allowed[msg.sender][_spender] = _value;
+        Approval(msg.sender, _spender, _value);
+
+        if(!_spender.call(bytes4(bytes32(sha3("receiveApproval(address,uint256,address,bytes)"))), msg.sender, _value, this, _extraData)) { throw; }
+        return true;
+    }
 }
