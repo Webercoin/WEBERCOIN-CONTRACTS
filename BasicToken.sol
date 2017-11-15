@@ -1,19 +1,43 @@
-
-pragma solidity ^0.4.8;
+pragma solidity ^0.4.18;
 
 contract Token {
-    uint256 public totalSupply;
 
-    function balanceOf(address _owner) constant returns (uint256 balance);
-    function transfer(address _to, uint256 _value) returns (bool success);
-    function transferFrom(address _from, address _to, uint256 _value) returns (bool success);
-    function approve(address _spender, uint256 _value) returns (bool success);
+    /// @return total amount of tokens
+    function totalSupply() constant returns (uint256 supply) {}
 
-    function allowance(address _owner, address _spender) constant returns (uint256 remaining);
+    /// @param _owner The address from which the balance will be retrieved
+    /// @return The balance
+    function balanceOf(address _owner) constant returns (uint256 balance) {}
+
+    /// @notice send `_value` token to `_to` from `msg.sender`
+    /// @param _to The address of the recipient
+    /// @param _value The amount of token to be transferred
+    /// @return Whether the transfer was successful or not
+    function transfer(address _to, uint256 _value) returns (bool success) {}
+
+    /// @notice send `_value` token to `_to` from `_from` on the condition it is approved by `_from`
+    /// @param _from The address of the sender
+    /// @param _to The address of the recipient
+    /// @param _value The amount of token to be transferred
+    /// @return Whether the transfer was successful or not
+    function transferFrom(address _from, address _to, uint256 _value) returns (bool success) {}
+
+    /// @notice `msg.sender` approves `_addr` to spend `_value` tokens
+    /// @param _spender The address of the account able to transfer the tokens
+    /// @param _value The amount of wei to be approved for transfer
+    /// @return Whether the approval was successful or not
+    function approve(address _spender, uint256 _value) returns (bool success) {}
+
+    /// @param _owner The address of the account owning tokens
+    /// @param _spender The address of the account able to transfer the tokens
+    /// @return Amount of remaining tokens allowed to spent
+    function allowance(address _owner, address _spender) constant returns (uint256 remaining) {}
 
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
+    
 }
+
 
 contract StandardToken is Token {
 
@@ -27,6 +51,8 @@ contract StandardToken is Token {
     }
 
     function transferFrom(address _from, address _to, uint256 _value) returns (bool success) {
+        //same as above. Replace this line with the following if you want to protect against wrapping uints.
+        //if (balances[_from] >= _value && allowed[_from][msg.sender] >= _value && balances[_to] + _value > balances[_to]) {
         if (balances[_from] >= _value && allowed[_from][msg.sender] >= _value && _value > 0) {
             balances[_to] += _value;
             balances[_from] -= _value;
@@ -52,30 +78,32 @@ contract StandardToken is Token {
 
     mapping (address => uint256) balances;
     mapping (address => mapping (address => uint256)) allowed;
+    uint256 public totalSupply;
 }
+
+
 
 contract WeberCoin is StandardToken {
 
     function () {
+        //if ether is sent to this address, send it back.
         throw;
     }
 
     string public name;                   
     uint8 public decimals;                
-    string public symbol;                
-    string public version = 'H0.1';       
+    string public symbol;                 
+    string public version = 'H1.0';       //human 0.1 standard. Just an arbitrary versioning scheme.
+
+
 
     function WeberCoin(
-        uint256 _initialAmount,
-        string webercoin,
-        uint8 _decimalUnits,
-        string WBC
         ) {
-        balances[msg.sender] = 100000000;               
-        totalSupply = 100000000;                        
-        name = webercoin;                               
+        balances[msg.sender] = 100000000;              
+        totalSupply = 100000000;                       
+        name = "WeberCoin";                            
         decimals = 18;                            
-        symbol = WBC;                             
+        symbol = "WBC";                           
     }
 
     /* Approves and then calls the receiving contract */
@@ -83,6 +111,9 @@ contract WeberCoin is StandardToken {
         allowed[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
 
+        //call the receiveApproval function on the contract you want to be notified. This crafts the function signature manually so one doesn't have to include a contract in here just for this.
+        //receiveApproval(address _from, uint256 _value, address _tokenContract, bytes _extraData)
+        //it is assumed that when does this that the call *should* succeed, otherwise one would use vanilla approve instead.
         if(!_spender.call(bytes4(bytes32(sha3("receiveApproval(address,uint256,address,bytes)"))), msg.sender, _value, this, _extraData)) { throw; }
         return true;
     }
